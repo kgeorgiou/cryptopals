@@ -5,7 +5,6 @@ import (
 	"crypto/aes"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"io/ioutil"
 	"testing"
 )
@@ -82,12 +81,10 @@ func TestChallenge12(t *testing.T) {
 }
 
 func TestChallenge13(t *testing.T) {
-	paramJSON := ecbCutAndPaste()
-	up := new(UserProfile)
-	json.Unmarshal([]byte(paramJSON), up)
+	userProfile := ecbCutAndPaste()
 
-	if up.Role != "admin" {
-		t.Errorf("Expected role=admin but got role=%s", up.Role)
+	if !userProfile.IsAdmin() {
+		t.Errorf("expected user profile to have admin previlleges")
 	}
 }
 

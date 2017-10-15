@@ -5,7 +5,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/url"
@@ -191,19 +190,18 @@ func (up *UserProfile) Encode() string {
 }
 
 // ParseQueryParams parses url query encoded params to a UserProfile struct
-func (up *UserProfile) ParseQueryParams(params string) string {
+func (up *UserProfile) ParseQueryParams(params string) {
 	v, _ := url.ParseQuery(params)
 
-	uid, _ := strconv.Atoi(v["uid"][0])
+	uid, _ := strconv.Atoi(v.Get("uid"))
 	up.UID = uid
-	up.Email = v["email"][0]
-	up.Role = v["role"][0]
+	up.Email = v.Get("email")
+	up.Role = v.Get("role")
+}
 
-	upJSON, err := json.Marshal(up)
-	if err != nil {
-		panic("can't marshal UserProfile to JSON")
-	}
-	return string(upJSON)
+// IsAdmin returns true if user is admin
+func (up *UserProfile) IsAdmin() bool {
+	return up.Role == "admin"
 }
 
 func profileFor(email string) string {
@@ -219,7 +217,7 @@ func profileFor(email string) string {
 	return profile.Encode()
 }
 
-func ecbCutAndPaste() string {
+func ecbCutAndPaste() *UserProfile {
 	key := []byte("0123456789abcdef")
 	cipher, _ := aes.NewCipher(key)
 	blockSize := cipher.BlockSize()
@@ -247,6 +245,6 @@ func ecbCutAndPaste() string {
 	pt := pkcs7Unpad(ecbDecrypt(nt, cipher))
 
 	up := new(UserProfile)
-	upJSON := up.ParseQueryParams(string(pt))
-	return upJSON
+	up.ParseQueryParams(string(pt))
+	return up
 }
