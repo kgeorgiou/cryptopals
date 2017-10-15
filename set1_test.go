@@ -128,7 +128,7 @@ func TestChallenge5(t *testing.T) {
 		output := xor([]byte(tt.plaintext), []byte(tt.key))
 		hexOutput := hex.EncodeToString(output)
 		if hexOutput != tt.ciphertext {
-			t.Errorf("actual: %s :: Expected: %s.", hexOutput, tt.ciphertext)
+			t.Errorf("actual: %s :: expected: %s.", hexOutput, tt.ciphertext)
 		}
 	}
 }

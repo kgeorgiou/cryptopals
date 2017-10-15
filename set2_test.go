@@ -5,6 +5,7 @@ import (
 	"crypto/aes"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"io/ioutil"
 	"testing"
 )
@@ -81,6 +82,38 @@ func TestChallenge12(t *testing.T) {
 }
 
 func TestChallenge13(t *testing.T) {
+	paramJSON := ecbCutAndPaste()
+	up := new(UserProfile)
+	json.Unmarshal([]byte(paramJSON), up)
+
+	if up.Role != "admin" {
+		t.Errorf("Expected role=admin but got role=%s", up.Role)
+	}
+}
+
+func TestChallenge15(t *testing.T) {
 	pt := ecbOraclePaddingAttack(ecbOracle)
 	t.Logf("Plaintext: %s", string(pt))
+}
+
+func TestProfileFor(t *testing.T) {
+	tests := []struct {
+		in  string
+		out string
+	}{
+		{
+			"foo@bar.com",
+			"email=foo@bar.com&uid=10&role=user",
+		},
+		{
+			"foo@bar.com&role=admin",
+			"email=foo@bar.com_role_admin&uid=10&role=user",
+		},
+	}
+	for _, tt := range tests {
+		out := profileFor(tt.in)
+		if out != tt.out {
+			t.Errorf("actual %s :: expected %s", out, tt.out)
+		}
+	}
 }

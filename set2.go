@@ -5,8 +5,12 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"math/rand"
+	"net/url"
+	"regexp"
+	"strconv"
 	"time"
 )
 
@@ -172,4 +176,77 @@ func ecbOraclePaddingAttack(oracle func(input []byte) []byte) []byte {
 		plaintext = append(plaintext, blockSolution...)
 	}
 	return plaintext
+}
+
+// UserProfile for Challenge 13
+type UserProfile struct {
+	Email string `json:"email"`
+	UID   int    `json:"uid"`
+	Role  string `json:"role"`
+}
+
+// Encode encodes a UserProfile struct to url query params format
+func (up *UserProfile) Encode() string {
+	return "email=" + up.Email + "&uid=" + strconv.Itoa(up.UID) + "&role=" + up.Role
+}
+
+// ParseQueryParams parses url query encoded params to a UserProfile struct
+func (up *UserProfile) ParseQueryParams(params string) string {
+	v, _ := url.ParseQuery(params)
+
+	uid, _ := strconv.Atoi(v["uid"][0])
+	up.UID = uid
+	up.Email = v["email"][0]
+	up.Role = v["role"][0]
+
+	upJSON, err := json.Marshal(up)
+	if err != nil {
+		panic("can't marshal UserProfile to JSON")
+	}
+	return string(upJSON)
+}
+
+func profileFor(email string) string {
+	// Replace control metacharacters: [&=] -> _
+	re := regexp.MustCompile(`[&=]`)
+	email = re.ReplaceAllString(email, "_")
+
+	profile := UserProfile{
+		email,
+		10,
+		"user",
+	}
+	return profile.Encode()
+}
+
+func ecbCutAndPaste() string {
+	key := []byte("0123456789abcdef")
+	cipher, _ := aes.NewCipher(key)
+	blockSize := cipher.BlockSize()
+
+	profile := profileFor("eve@AAAAAAadmin\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0bAAA")
+	ct := ecbEncrypt(pkcs7Pad([]byte(profile), blockSize), cipher)
+	/*
+		email=eve@AAAAAA
+		adminXXXXXXXXXXX <- artificial padding
+		AAA&uid=10&role=
+		userPPPPPPPPPPPP <- legit padding
+	*/
+
+	nt := []byte{}
+	nt = append(nt, ct[:blockSize]...)
+	nt = append(nt, ct[blockSize:2*blockSize]...) // cut
+	nt = append(nt, ct[2*blockSize:3*blockSize]...)
+	nt = append(nt, ct[blockSize:2*blockSize]...) // paste
+	/*
+		email=eve@AAAAAA <- crafted 1st block
+		adminXXXXXXXXXXX <- crafted 2nd block, with artificial PKCS7 padding
+		AAA&uid=10&role= <- partly crafted 3rd block to push "role=" at the end of the block
+		adminXXXXXXXXXXX <- crafted 2nd block, with artificial PKCS7 padding
+	*/
+	pt := pkcs7Unpad(ecbDecrypt(nt, cipher))
+
+	up := new(UserProfile)
+	upJSON := up.ParseQueryParams(string(pt))
+	return upJSON
 }
