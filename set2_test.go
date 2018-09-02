@@ -73,11 +73,27 @@ func TestChallenge11(t *testing.T) {
 	}
 }
 
-func TestChallenge12(t *testing.T) {
-	size, _ := ecbOracleDetectBlockSize(ecbOracle)
-	if size != 16 {
-		t.Logf("Actual: %d, Expected: %d", size, 16)
+func TestEcbOracleDetectBlockSize(t *testing.T) {
+	testSize := 16
+	oracle := newEcbOracle(testSize, false)
+	size, _ := ecbOracleDetectBlockSize(oracle)
+	if size != testSize {
+		t.Fatalf("Actual: %d, Expected: %d", size, 16)
 	}
+}
+func TestEcbOracleWithPrefixDetectBlockSize(t *testing.T) {
+	testSize := 16
+	oracle := newEcbOracle(testSize, true)
+	size, _ := ecbOracleDetectBlockSize(oracle)
+	if size != testSize {
+		t.Fatalf("Actual: %d, Expected: %d", size, 16)
+	}
+}
+
+func TestChallenge12(t *testing.T) {
+	oracle := newEcbOracle(16, false)
+	pt := ecbOraclePaddingAttack(oracle)
+	t.Logf("Plaintext: %s", string(pt))
 }
 
 func TestChallenge13(t *testing.T) {
@@ -86,11 +102,6 @@ func TestChallenge13(t *testing.T) {
 	if !userProfile.IsAdmin() {
 		t.Errorf("expected user profile to have admin previlleges")
 	}
-}
-
-func TestChallenge15(t *testing.T) {
-	pt := ecbOraclePaddingAttack(ecbOracle)
-	t.Logf("Plaintext: %s", string(pt))
 }
 
 func TestProfileFor(t *testing.T) {
@@ -112,5 +123,38 @@ func TestProfileFor(t *testing.T) {
 		if out != tt.out {
 			t.Errorf("actual %s :: expected %s", out, tt.out)
 		}
+	}
+}
+
+func TestFindPrefixSize(t *testing.T) {
+	oracle := newEcbOracle(16, true)
+	s := findPrefixSize(oracle, 16)
+	t.Logf("s detected: %d", s)
+}
+
+func TestFindPrefixLengthModBlockSize(t *testing.T) {
+	oracle := newEcbOracle(16, true)
+	s := findPrefixLengthModBlockSize(oracle, 16)
+	t.Logf("s detected: %d", s)
+}
+
+func TestChallenge14(t *testing.T) {
+	oracle := newEcbOracle(16, true)
+	pt := ecbOraclePaddingAttack(oracle)
+	t.Logf("Plaintext: %s", string(pt))
+}
+
+func TestChallenge16(t *testing.T) {
+	key := []byte("YELLOW SUBMARINE")
+	iv := []byte("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00")
+	cipher, _ := aes.NewCipher(key)
+
+	ciphertext := encryptUserData(cipher, iv, "AAAAAAAAAAAAAAAA")
+	isAdmin, err := decryptUserData(cipher, iv, ciphertext)
+	if err != nil {
+		t.Errorf("failed to decrypt user data: %v", err)
+	}
+	if !isAdmin {
+		t.Errorf("user is not admin")
 	}
 }
