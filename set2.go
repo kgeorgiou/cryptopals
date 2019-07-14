@@ -30,22 +30,23 @@ func pkcs7Pad(input []byte, k int) []byte {
 	return input
 }
 
-func pkcs7Unpad(input []byte) []byte {
+func pkcs7Unpad(input []byte) ([]byte, error) {
 	if len(input) < 2 {
-		panic("invalid PKCS#7 padding: input too short - RFC5652")
+		return nil, fmt.Errorf("invalid PKCS#7 padding: input too short - RFC5652")
 	}
 	paddingOctet := input[len(input)-1]
-	var count int
+	count := 0
 	for i := len(input) - 1; i >= 0 && i >= len(input)-int(paddingOctet); i-- {
 		if input[i] != paddingOctet {
-			panic("invalid PKCS#7 padding: padding octets mismatch - RFC5652")
+			return nil, fmt.Errorf("invalid PKCS#7 padding: padding octets mismatch - RFC5652")
 		}
 		count++
 	}
-	if count != int(paddingOctet) {
-		panic("invalid PKCS#7 padding: missing padding bytes - RFC5652")
+	if count != int(paddingOctet) || paddingOctet == 0 {
+		return nil, fmt.Errorf("invalid PKCS#7 padding: missing padding bytes - RFC5652")
 	}
-	return input[:len(input)-int(paddingOctet)]
+
+	return input[:len(input)-int(paddingOctet)], nil
 }
 
 func ecbEncrypt(input []byte, cipher cipher.Block) []byte {
@@ -272,7 +273,7 @@ func ecbCutAndPaste() *UserProfile {
 		AAA&uid=10&role= <- partly crafted 3rd block to push "role=" at the end of the block
 		adminXXXXXXXXXXX <- crafted 2nd block, with artificial PKCS7 padding
 	*/
-	pt := pkcs7Unpad(ecbDecrypt(nt, cipher))
+	pt, _ := pkcs7Unpad(ecbDecrypt(nt, cipher))
 
 	up := new(UserProfile)
 	up.ParseQueryParams(string(pt))
@@ -340,7 +341,7 @@ func decryptUserData(cipher cipher.Block, iv []byte, ciphertext []byte) (bool, e
 	if err != nil {
 		return false, err
 	}
-	plaintext := pkcs7Unpad(cbcDecrypt(tamperedCiphertext, iv, cipher))
+	plaintext, _ := pkcs7Unpad(cbcDecrypt(tamperedCiphertext, iv, cipher))
 	return strings.Contains(string(plaintext), ";admin=true;"), nil
 }
 
@@ -367,7 +368,7 @@ func bitflipCiphertext(cipher cipher.Block, iv, ciphertext []byte, start int, ta
 		start = start + blockSize
 	}
 
-	plaintext := pkcs7Unpad(cbcDecrypt(ciphertext, iv, cipher))
+	plaintext, _ := pkcs7Unpad(cbcDecrypt(ciphertext, iv, cipher))
 
 	// plaintext segment
 	pt := plaintext[start : start+len(targetString)]

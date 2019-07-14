@@ -32,7 +32,7 @@ func TestChallenge9(t *testing.T) {
 			t.Errorf("Actual %v :: Expected %v", padded, tt.out)
 		}
 
-		unpadded := pkcs7Unpad(padded)
+		unpadded, _ := pkcs7Unpad(padded)
 		if !bytes.Equal(unpadded, tt.in) {
 			t.Errorf("Actual %v :: Expected %v", unpadded, tt.in)
 		}
