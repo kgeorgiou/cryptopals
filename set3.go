@@ -2,8 +2,10 @@ package cryptopals
 
 import (
 	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
 	"log"
 )
 
@@ -105,3 +107,42 @@ func attackCBCPaddingOracle(iv, ct []byte, oracle func(iv, ciphertext []byte) bo
 
 	return pt
 }
+
+func ctrEncrypt(input, nonce []byte, cipher cipher.Block) ([]byte, error) {
+	blockSize := cipher.BlockSize()
+	plaintext := make([]byte, len(input))
+
+	// need nonce size to be equal to half the block size
+	// e.g. need 8 bytes nonce for 16 bytes block size
+	if len(nonce) != blockSize/2 {
+		return nil, fmt.Errorf("invalid nonce: wrong byte length")
+	}
+
+	// first half bytes: nonce
+	// second half bytes: counter
+	nonceCounter := make([]byte, blockSize)
+	copy(nonceCounter, nonce)
+
+	increaseCounter := func(counter []byte) {
+		for i := 0; i < len(counter); i++ {
+			counter[i]++
+			if counter[i] != 0 {
+				return
+			}
+		}
+	}
+
+	for i := 0; i < len(input); i += blockSize {
+		// nonce + counter (both in Little Endian)
+		xorWith := make([]byte, blockSize)
+		cipher.Encrypt(xorWith, nonceCounter)
+		copy(plaintext[i:], xor(input[i:], xorWith))
+
+		// counter bytes are in 2nd half, in Little Endianess
+		increaseCounter(nonceCounter[blockSize/2:])
+	}
+
+	return plaintext, nil
+}
+
+var ctrDecrypt = ctrEncrypt

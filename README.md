@@ -35,8 +35,8 @@ Learn about crypto concepts while practicing [Go](https://golang.org/).
 ## Set 3: Block & stream crypto
 
 - [x] Challenge 17: The CBC padding oracle
-- [ ] Challenge 18: Implement CTR, the stream cipher mode
-- [ ] Challenge 19: Break fixed-nonce CTR mode using substitutions
+- [x] Challenge 18: Implement CTR, the stream cipher mode
+- [x] Challenge 19: Break fixed-nonce CTR mode using substitutions
 - [ ] Challenge 20: Break fixed-nonce CTR statistically
 - [ ] Challenge 21: Implement the MT19937 Mersenne Twister RNG
 - [ ] Challenge 22: Crack an MT19937 seed
@@ -46,6 +46,15 @@ Learn about crypto concepts while practicing [Go](https://golang.org/).
 ## Set 4: Stream crypto and randomness
 
 ## Set 5: Diffie-Hellman and friends
+
+- [x] Challenge 33: Implement Diffie-Hellman
+- [ ] Challenge 34: Implement a MITM key-fixing attack on Diffie-Hellman with parameter injection
+- [ ] Challenge 35: Implement DH with negotiated groups, and break with malicious "g" parameters
+- [ ] Challenge 36: Implement Secure Remote Password (SRP)
+- [ ] Challenge 37: Break SRP with a zero key
+- [ ] Challenge 38: Offline dictionary attack on simplified SRP
+- [x] Challenge 39: Implement RSA
+- [ ] Challenge 40: Implement an E=3 RSA Broadcast attack
 
 ## Set 6: RSA and DSA
 
